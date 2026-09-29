@@ -1,0 +1,21 @@
+pitch_id,pitcher_id,batter_id,pitch_type,result,velocity,zone
+1,101,501,Fastball,Swinging Strike,94.2,5
+2,101,502,Slider,Ball,85.7,12
+3,101,503,Fastball,Foul,95.1,3
+4,102,501,Changeup,Swinging Strike,82.4,6
+5,101,504,Slider,Swinging Strike,86.1,8
+6,102,505,Fastball,Called Strike,92.9,4
+7,101,501,Fastball,Ball,94.7,11
+8,102,502,Changeup,Ball,81.8,13
+9,101,506,Slider,Foul,85.4,7
+10,102,507,Fastball,Swinging Strike,93.3,5
+11,101,508,Fastball,In Play,95.0,2
+12,102,509,Changeup,Foul,82.7,8
+13,103,510,Curveball,Called Strike,78.9,1
+14,103,511,Fastball,Swinging Strike,91.8,6
+15,103,512,Curveball,Ball,79.4,14
+16,103,513,Fastball,Foul,92.2,4
+17,101,514,Slider,Swinging Strike,86.5,9
+18,102,515,Fastball,In Play,93.0,3
+19,103,516,Curveball,Swinging Strike,80.1,7
+20,103,517,Fastball,Ball,92.5,12

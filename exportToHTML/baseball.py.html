@@ -1,0 +1,231 @@
+<html>
+<head>
+<title>baseball.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bcbec4;}
+.s3 { color: #6aab73;}
+.s4 { color: #7a7e85;}
+.s5 { color: #2aacb8;}
+</style>
+</head>
+<body bgcolor="#1e1f22">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+baseball.py</font>
+</center></td></tr></table>
+<pre><span class="s0">import </span><span class="s1">pandas </span><span class="s0">as </span><span class="s1">pd</span>
+
+<span class="s1">pitches </span><span class="s2">= </span><span class="s1">pd</span><span class="s2">.</span><span class="s1">read_csv</span><span class="s2">(</span><span class="s3">&quot;pitches.csv&quot;</span><span class="s2">)</span>
+<span class="s1">players </span><span class="s2">= </span><span class="s1">pd</span><span class="s2">.</span><span class="s1">read_csv</span><span class="s2">(</span><span class="s3">&quot;players.csv&quot;</span><span class="s2">)</span>
+
+<span class="s1">print</span><span class="s2">(</span><span class="s1">pitches</span><span class="s2">.</span><span class="s1">head</span><span class="s2">())</span>
+
+<span class="s4">#Before generating reports, I added checks for duplicate pitch IDs,</span>
+<span class="s4">#missing player identifiers, impossible values like unrealistic velocity readings,</span>
+<span class="s4">#and unexpected categorical values.</span>
+<span class="s4">#The goal was to prevent bad source data from silently affecting the scouting report.</span>
+
+<span class="s0">def </span><span class="s1">validate_data</span><span class="s2">(</span><span class="s1">df</span><span class="s2">):</span>
+
+    <span class="s0">if </span><span class="s1">df</span><span class="s2">[</span><span class="s3">&quot;pitch_id&quot;</span><span class="s2">].</span><span class="s1">duplicated</span><span class="s2">().</span><span class="s1">any</span><span class="s2">():</span>
+        <span class="s0">raise </span><span class="s1">ValueError</span><span class="s2">(</span><span class="s3">&quot;Duplicate pitch IDs found.&quot;</span><span class="s2">)</span>
+
+    <span class="s0">if </span><span class="s1">df</span><span class="s2">[</span><span class="s3">&quot;pitcher_id&quot;</span><span class="s2">].</span><span class="s1">isna</span><span class="s2">().</span><span class="s1">any</span><span class="s2">():</span>
+        <span class="s0">raise </span><span class="s1">ValueError</span><span class="s2">(</span><span class="s3">&quot;Missing pitcher IDs.&quot;</span><span class="s2">)</span>
+
+    <span class="s0">if not </span><span class="s1">df</span><span class="s2">[</span><span class="s3">&quot;velocity&quot;</span><span class="s2">].</span><span class="s1">between</span><span class="s2">(</span><span class="s5">50</span><span class="s2">, </span><span class="s5">110</span><span class="s2">).</span><span class="s1">all</span><span class="s2">():</span>
+        <span class="s1">print</span><span class="s2">(</span><span class="s3">&quot;Warning: unusual velocity detected.&quot;</span><span class="s2">)</span>
+
+    <span class="s1">valid_pitch_types </span><span class="s2">= {</span>
+        <span class="s3">&quot;fastball&quot;</span><span class="s2">,</span>
+        <span class="s3">&quot;slider&quot;</span><span class="s2">,</span>
+        <span class="s3">&quot;changeup&quot;</span><span class="s2">,</span>
+        <span class="s3">&quot;curveball&quot;</span>
+    <span class="s2">}</span>
+
+    <span class="s1">invalid </span><span class="s2">= ~</span><span class="s1">df</span><span class="s2">[</span><span class="s3">&quot;pitch_type&quot;</span><span class="s2">].</span><span class="s1">isin</span><span class="s2">(</span><span class="s1">valid_pitch_types</span><span class="s2">)</span>
+
+    <span class="s0">if </span><span class="s1">invalid</span><span class="s2">.</span><span class="s1">any</span><span class="s2">():</span>
+        <span class="s1">print</span><span class="s2">(</span><span class="s3">&quot;Unknown pitch type detected:&quot;</span><span class="s2">)</span>
+        <span class="s1">print</span><span class="s2">(</span><span class="s1">df</span><span class="s2">.</span><span class="s1">loc</span><span class="s2">[</span><span class="s1">invalid</span><span class="s2">, </span><span class="s3">&quot;pitch_type&quot;</span><span class="s2">].</span><span class="s1">unique</span><span class="s2">())</span>
+
+
+<span class="s1">validate_data</span><span class="s2">(</span><span class="s1">pitches</span><span class="s2">)</span>
+
+<span class="s0">import </span><span class="s1">sqlite3</span>
+
+<span class="s1">conn </span><span class="s2">= </span><span class="s1">sqlite3</span><span class="s2">.</span><span class="s1">connect</span><span class="s2">(</span><span class="s3">&quot;baseball.db&quot;</span><span class="s2">)</span>
+
+<span class="s1">pitches</span><span class="s2">.</span><span class="s1">to_sql</span><span class="s2">(</span>
+    <span class="s3">&quot;pitches&quot;</span><span class="s2">,</span>
+    <span class="s1">conn</span><span class="s2">,</span>
+    <span class="s1">if_exists</span><span class="s2">=</span><span class="s3">&quot;replace&quot;</span><span class="s2">,</span>
+    <span class="s1">index</span><span class="s2">=</span><span class="s0">False</span>
+<span class="s2">)</span>
+
+<span class="s1">players</span><span class="s2">.</span><span class="s1">to_sql</span><span class="s2">(</span>
+    <span class="s3">&quot;players&quot;</span><span class="s2">,</span>
+    <span class="s1">conn</span><span class="s2">,</span>
+    <span class="s1">if_exists</span><span class="s2">=</span><span class="s3">&quot;replace&quot;</span><span class="s2">,</span>
+    <span class="s1">index</span><span class="s2">=</span><span class="s0">False</span>
+<span class="s2">)</span>
+
+<span class="s1">query </span><span class="s2">= </span><span class="s3">&quot;&quot;&quot; 
+SELECT 
+    p.pitch_id, 
+    pl.name AS pitcher_name, 
+    pl.throws, 
+    p.pitch_type, 
+    p.result, 
+    p.velocity, 
+    p.zone 
+FROM pitches p 
+JOIN players pl 
+    ON p.pitcher_id = pl.player_id 
+&quot;&quot;&quot;</span>
+
+<span class="s1">data </span><span class="s2">= </span><span class="s1">pd</span><span class="s2">.</span><span class="s1">read_sql_query</span><span class="s2">(</span><span class="s1">query</span><span class="s2">, </span><span class="s1">conn</span><span class="s2">)</span>
+
+<span class="s1">print</span><span class="s2">(</span><span class="s1">data</span><span class="s2">)</span>
+
+<span class="s4">#pitch usage</span>
+
+<span class="s1">pitch_usage </span><span class="s2">= (</span>
+    <span class="s1">data</span>
+    <span class="s2">.</span><span class="s1">groupby</span><span class="s2">([</span><span class="s3">&quot;pitcher_name&quot;</span><span class="s2">, </span><span class="s3">&quot;pitch_type&quot;</span><span class="s2">])</span>
+    <span class="s2">.</span><span class="s1">size</span><span class="s2">()</span>
+    <span class="s2">.</span><span class="s1">reset_index</span><span class="s2">(</span><span class="s1">name</span><span class="s2">=</span><span class="s3">&quot;pitch_count&quot;</span><span class="s2">)</span>
+<span class="s2">)</span>
+
+<span class="s1">total_pitches </span><span class="s2">= (</span>
+    <span class="s1">data</span>
+    <span class="s2">.</span><span class="s1">groupby</span><span class="s2">(</span><span class="s3">&quot;pitcher_name&quot;</span><span class="s2">)</span>
+    <span class="s2">.</span><span class="s1">size</span><span class="s2">()</span>
+    <span class="s2">.</span><span class="s1">reset_index</span><span class="s2">(</span><span class="s1">name</span><span class="s2">=</span><span class="s3">&quot;total_pitches&quot;</span><span class="s2">)</span>
+<span class="s2">)</span>
+
+<span class="s1">pitch_usage </span><span class="s2">= </span><span class="s1">pitch_usage</span><span class="s2">.</span><span class="s1">merge</span><span class="s2">(</span>
+    <span class="s1">total_pitches</span><span class="s2">,</span>
+    <span class="s1">on</span><span class="s2">=</span><span class="s3">&quot;pitcher_name&quot;</span>
+<span class="s2">)</span>
+
+<span class="s1">pitch_usage</span><span class="s2">[</span><span class="s3">&quot;usage_percent&quot;</span><span class="s2">] = (</span>
+    <span class="s1">pitch_usage</span><span class="s2">[</span><span class="s3">&quot;pitch_count&quot;</span><span class="s2">]</span>
+    <span class="s2">/ </span><span class="s1">pitch_usage</span><span class="s2">[</span><span class="s3">&quot;total_pitches&quot;</span><span class="s2">]</span>
+    <span class="s2">* </span><span class="s5">100</span>
+<span class="s2">)</span>
+
+<span class="s1">print</span><span class="s2">(</span><span class="s1">pitch_usage</span><span class="s2">)</span>
+
+<span class="s4">#whiff rate</span>
+<span class="s1">swing_results </span><span class="s2">= [</span>
+    <span class="s3">&quot;swinging strike&quot;</span><span class="s2">,</span>
+    <span class="s3">&quot;foul&quot;</span><span class="s2">,</span>
+    <span class="s3">&quot;in play&quot;</span>
+<span class="s2">]</span>
+
+<span class="s1">data</span><span class="s2">[</span><span class="s3">&quot;swing&quot;</span><span class="s2">] = (</span>
+    <span class="s1">data</span><span class="s2">[</span><span class="s3">&quot;result&quot;</span><span class="s2">]</span>
+    <span class="s2">.</span><span class="s1">str</span><span class="s2">.</span><span class="s1">lower</span><span class="s2">()</span>
+    <span class="s2">.</span><span class="s1">isin</span><span class="s2">(</span><span class="s1">swing_results</span><span class="s2">)</span>
+<span class="s2">)</span>
+
+<span class="s1">data</span><span class="s2">[</span><span class="s3">&quot;whiff&quot;</span><span class="s2">] = (</span>
+    <span class="s1">data</span><span class="s2">[</span><span class="s3">&quot;result&quot;</span><span class="s2">]</span>
+    <span class="s2">.</span><span class="s1">str</span><span class="s2">.</span><span class="s1">lower</span><span class="s2">()</span>
+    <span class="s2">.</span><span class="s1">eq</span><span class="s2">(</span><span class="s3">&quot;swinging strike&quot;</span><span class="s2">)</span>
+<span class="s2">)</span>
+<span class="s1">whiff_report </span><span class="s2">= (</span>
+    <span class="s1">data</span>
+    <span class="s2">.</span><span class="s1">groupby</span><span class="s2">([</span><span class="s3">&quot;pitcher_name&quot;</span><span class="s2">, </span><span class="s3">&quot;pitch_type&quot;</span><span class="s2">])</span>
+    <span class="s2">.</span><span class="s1">agg</span><span class="s2">(</span>
+        <span class="s1">swings</span><span class="s2">=(</span><span class="s3">&quot;swing&quot;</span><span class="s2">, </span><span class="s3">&quot;sum&quot;</span><span class="s2">),</span>
+        <span class="s1">whiffs</span><span class="s2">=(</span><span class="s3">&quot;whiff&quot;</span><span class="s2">, </span><span class="s3">&quot;sum&quot;</span><span class="s2">)</span>
+    <span class="s2">)</span>
+    <span class="s2">.</span><span class="s1">reset_index</span><span class="s2">()</span>
+<span class="s2">)</span>
+
+<span class="s1">whiff_report</span><span class="s2">[</span><span class="s3">&quot;whiff_rate&quot;</span><span class="s2">] = (</span>
+    <span class="s1">whiff_report</span><span class="s2">[</span><span class="s3">&quot;whiffs&quot;</span><span class="s2">]</span>
+    <span class="s2">/ </span><span class="s1">whiff_report</span><span class="s2">[</span><span class="s3">&quot;swings&quot;</span><span class="s2">]</span>
+    <span class="s2">* </span><span class="s5">100</span>
+<span class="s2">)</span>
+
+<span class="s1">print</span><span class="s2">(</span><span class="s1">whiff_report</span><span class="s2">)</span>
+
+<span class="s4">#average velocity</span>
+
+<span class="s1">velocity_report </span><span class="s2">= (</span>
+    <span class="s1">data</span>
+    <span class="s2">.</span><span class="s1">groupby</span><span class="s2">([</span><span class="s3">&quot;pitcher_name&quot;</span><span class="s2">, </span><span class="s3">&quot;pitch_type&quot;</span><span class="s2">])</span>
+    <span class="s2">[</span><span class="s3">&quot;velocity&quot;</span><span class="s2">]</span>
+    <span class="s2">.</span><span class="s1">mean</span><span class="s2">()</span>
+    <span class="s2">.</span><span class="s1">reset_index</span><span class="s2">()</span>
+<span class="s2">)</span>
+
+<span class="s1">velocity_report</span><span class="s2">[</span><span class="s3">&quot;velocity&quot;</span><span class="s2">] = (</span>
+    <span class="s1">velocity_report</span><span class="s2">[</span><span class="s3">&quot;velocity&quot;</span><span class="s2">].</span><span class="s1">round</span><span class="s2">(</span><span class="s5">1</span><span class="s2">)</span>
+<span class="s2">)</span>
+
+<span class="s1">print</span><span class="s2">(</span><span class="s1">velocity_report</span><span class="s2">)</span>
+
+<span class="s4">#zone tendencies</span>
+
+<span class="s1">data</span><span class="s2">[</span><span class="s3">&quot;in_zone&quot;</span><span class="s2">] = </span><span class="s1">data</span><span class="s2">[</span><span class="s3">&quot;zone&quot;</span><span class="s2">].</span><span class="s1">between</span><span class="s2">(</span><span class="s5">1</span><span class="s2">, </span><span class="s5">9</span><span class="s2">)</span>
+
+<span class="s1">zone_report </span><span class="s2">= (</span>
+    <span class="s1">data</span>
+    <span class="s2">.</span><span class="s1">groupby</span><span class="s2">([</span><span class="s3">&quot;pitcher_name&quot;</span><span class="s2">, </span><span class="s3">&quot;pitch_type&quot;</span><span class="s2">])</span>
+    <span class="s2">[</span><span class="s3">&quot;in_zone&quot;</span><span class="s2">]</span>
+    <span class="s2">.</span><span class="s1">mean</span><span class="s2">()</span>
+    <span class="s2">.</span><span class="s1">reset_index</span><span class="s2">()</span>
+<span class="s2">)</span>
+
+<span class="s1">zone_report</span><span class="s2">[</span><span class="s3">&quot;zone_percent&quot;</span><span class="s2">] = (</span>
+    <span class="s1">zone_report</span><span class="s2">[</span><span class="s3">&quot;in_zone&quot;</span><span class="s2">] * </span><span class="s5">100</span>
+<span class="s2">)</span>
+
+<span class="s1">print</span><span class="s2">(</span><span class="s1">zone_report</span><span class="s2">)</span>
+
+<span class="s4">#combine</span>
+
+<span class="s1">report </span><span class="s2">= (</span>
+    <span class="s1">pitch_usage</span>
+    <span class="s2">.</span><span class="s1">merge</span><span class="s2">(</span>
+        <span class="s1">whiff_report</span><span class="s2">,</span>
+        <span class="s1">on</span><span class="s2">=[</span><span class="s3">&quot;pitcher_name&quot;</span><span class="s2">, </span><span class="s3">&quot;pitch_type&quot;</span><span class="s2">]</span>
+    <span class="s2">)</span>
+    <span class="s2">.</span><span class="s1">merge</span><span class="s2">(</span>
+        <span class="s1">velocity_report</span><span class="s2">,</span>
+        <span class="s1">on</span><span class="s2">=[</span><span class="s3">&quot;pitcher_name&quot;</span><span class="s2">, </span><span class="s3">&quot;pitch_type&quot;</span><span class="s2">]</span>
+    <span class="s2">)</span>
+    <span class="s2">.</span><span class="s1">merge</span><span class="s2">(</span>
+        <span class="s1">zone_report</span><span class="s2">[</span>
+            <span class="s2">[</span><span class="s3">&quot;pitcher_name&quot;</span><span class="s2">, </span><span class="s3">&quot;pitch_type&quot;</span><span class="s2">, </span><span class="s3">&quot;zone_percent&quot;</span><span class="s2">]</span>
+        <span class="s2">],</span>
+        <span class="s1">on</span><span class="s2">=[</span><span class="s3">&quot;pitcher_name&quot;</span><span class="s2">, </span><span class="s3">&quot;pitch_type&quot;</span><span class="s2">]</span>
+    <span class="s2">)</span>
+<span class="s2">)</span>
+
+<span class="s1">print</span><span class="s2">(</span><span class="s1">report</span><span class="s2">)</span>
+
+<span class="s4">#automate</span>
+
+<span class="s0">def </span><span class="s1">generate_pitcher_report</span><span class="s2">(</span><span class="s1">pitcher</span><span class="s2">):</span>
+
+    <span class="s1">pitcher_report </span><span class="s2">= </span><span class="s1">report</span><span class="s2">[</span>
+        <span class="s1">report</span><span class="s2">[</span><span class="s3">&quot;pitcher_name&quot;</span><span class="s2">] == </span><span class="s1">pitcher</span>
+    <span class="s2">]</span>
+
+    <span class="s1">print</span><span class="s2">(</span><span class="s3">&quot;</span><span class="s0">\n</span><span class="s3">SCOUTING REPORT&quot;</span><span class="s2">)</span>
+    <span class="s1">print</span><span class="s2">(</span><span class="s3">&quot;-------------------------&quot;</span><span class="s2">)</span>
+    <span class="s1">print</span><span class="s2">(</span><span class="s1">pitcher_report</span><span class="s2">.</span><span class="s1">to_string</span><span class="s2">(</span><span class="s1">index</span><span class="s2">=</span><span class="s0">False</span><span class="s2">))</span>
+
+
+<span class="s1">generate_pitcher_report</span><span class="s2">(</span><span class="s3">&quot;John Smith&quot;</span><span class="s2">)</span></pre>
+</body>
+</html>

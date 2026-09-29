@@ -1,0 +1,8 @@
+.venv/
+venv/
+__pycache__/
+.idea/
+*.pyc
+
+baseball.db
+scouting_report.csv
